@@ -29,6 +29,9 @@ def create_symlinked_copy(src, dst):
 
 class CVDInstance:
     def __init__(self, base_num: int):
+        if base_num < 10 or base_num > 99:
+            print('[-] Base number must be between 10 and 99 for QEMU compatibility')
+
         self.base_num: int = base_num
         self.cf: str = os.path.join(CFS, str(base_num))
         self.adb_port: int = 6520 + base_num - 1
@@ -56,6 +59,7 @@ class CVDInstance:
             '-tcp_port_range=15550:15599',
             '-udp_port_range=0:0',
             f'--base_instance_num={self.base_num}',
+            # '--vm_manager=qemu_cli'
             # '-gdb_port=2345',
             # '-console=true',
             # '-cpus=1',
@@ -113,12 +117,15 @@ class CVDInstance:
 
 
 if __name__ == '__main__':
-    base_num = 167  # TODO: change me
+    base_num = 30  # TODO: change me
     kernel = '/home/zlian064/android/Image'  # TODO: change me
     initramfs = '/home/zlian064/android/initramfs.img'  # TODO: change me
     ori_cf = '/home/zlian064/cf'  # TODO: change me
 
     cvd = CVDInstance(base_num)
-    if cvd.start(kernel, initramfs, ori_cf):
-        cvd.get_adb_shell()
+    try:
+        if cvd.start(kernel, initramfs, ori_cf):
+            cvd.get_adb_shell()
+            cvd.force_stop()
+    except KeyboardInterrupt:
         cvd.force_stop()
