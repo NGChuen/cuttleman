@@ -1,0 +1,124 @@
+import os
+import pexpect
+import psutil
+import shlex
+import shutil
+import subprocess
+
+
+DEV_KVM = '/dev/kvm'
+VHOST_VSOCK = '/dev/vhost-vsock'
+assert os.access(DEV_KVM, os.R_OK) and os.access(DEV_KVM, os.W_OK)
+assert os.access(VHOST_VSOCK, os.R_OK) and os.access(VHOST_VSOCK, os.W_OK)
+
+
+PROJ_DIR = os.path.dirname(os.path.abspath(__file__))
+CFS = os.path.join(PROJ_DIR, 'cfs')  # Temporary directory for storing data from different runs
+
+
+def create_symlinked_copy(src, dst):
+    if os.path.exists(dst):
+        shutil.rmtree(dst)
+    os.makedirs(dst)
+
+    for name in os.listdir(src):
+        src_path = os.path.join(src, name)
+        dst_link = os.path.join(dst, name)
+        os.symlink(src_path, dst_link)
+
+
+class CVDInstance:
+    def __init__(self, base_num: int):
+        self.base_num: int = base_num
+        self.cf: str = os.path.join(CFS, str(base_num))
+        self.adb_port: int = 6520 + base_num - 1
+
+        self._run_cvd_path = os.path.join(self.cf, 'bin/run_cvd')
+
+    def start(self, kernel: str, initramfs: str, ori_cf: str) -> bool:
+        # Stop the cvd instance you started earlier with the same base number, if any.
+        self.force_stop()
+
+        create_symlinked_copy(ori_cf, self.cf)
+
+        logfile = open(os.path.join(self.cf, 'launch_cvd_output'), 'w')
+        print(f'launch_cvd output: {logfile.name}')
+
+        env = os.environ.copy()
+        env['HOME'] = self.cf
+        args = [
+            os.path.join(self.cf, 'bin/launch_cvd'),
+            f'-kernel_path={kernel}',
+            f'-initramfs_path={initramfs}',
+            '--daemon',
+            '-enable-audio=true',
+            '-start_webrtc=true',
+            '-tcp_port_range=15550:15599',
+            '-udp_port_range=0:0',
+            f'--base_instance_num={self.base_num}',
+            # '-gdb_port=2345',
+            # '-console=true',
+            # '-cpus=1',
+            # '-extra_kernel_cmdline=nokaslr'
+        ]
+        cmd = shlex.join(args)
+        launch = pexpect.spawn(cmd, cwd=self.cf, env=env, encoding='utf-8', logfile=logfile)
+        launch.sendline()
+        index = launch.expect([pexpect.EOF, pexpect.TIMEOUT], timeout=240)
+        if index == 0:
+            if 'VIRTUAL_DEVICE_BOOT_COMPLETED' in launch.before:
+                print('[+] Boot succeeded')
+                return True
+            elif 'VIRTUAL_DEVICE_BOOT_FAILED' in launch.before:
+                print('[-] Boot failed (1)')
+                return False
+            else:
+                print('[-] Boot failed (2)')
+                return False
+        else:
+            print('[-] Boot failed (timed out)')
+            launch.close(True)
+            self.force_stop()
+            return False
+
+    def stop(self):
+        env = os.environ.copy()
+        env['HOME'] = self.cf
+        subprocess.run([os.path.join(self.cf, 'bin/stop_cvd')], cwd=self.cf, env=env)
+
+    def force_stop(self):
+        killed = False
+        for proc in psutil.process_iter(['pid', 'exe', 'cmdline']):
+            try:
+                cmdline = proc.info['cmdline']
+                if cmdline and cmdline[0] == self._run_cvd_path:
+                    proc.kill()
+                    killed = True
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        if killed:
+            print('[+] Killed')
+
+    def get_adb_shell(self):
+        print('Ctrl+D to exit the shell')
+        adb = pexpect.spawn(
+            f'{os.path.join(self.cf, 'bin/adb')} -s 0.0.0.0:{self.adb_port} shell',
+            echo=True,
+            cwd=self.cf,
+            encoding='utf-8',
+            codec_errors='ignore',
+        )
+        adb.interact()
+
+
+if __name__ == '__main__':
+    base_num = 167  # TODO: change me
+    kernel = '/home/zlian064/android/Image'  # TODO: change me
+    initramfs = '/home/zlian064/android/initramfs.img'  # TODO: change me
+    ori_cf = '/home/zlian064/cf'  # TODO: change me
+
+    cvd = CVDInstance(base_num)
+    if cvd.start(kernel, initramfs, ori_cf):
+        cvd.get_adb_shell()
+        cvd.force_stop()
