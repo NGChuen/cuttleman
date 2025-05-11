@@ -61,7 +61,7 @@ class CVDInstance:
         create_symlinked_copy(ori_cf, self.cf)
 
         logfile = open(os.path.join(self.cf, 'launch_cvd_output'), 'w')
-        print(f'Running launch_cvd. You MUST keep an eye on {logfile.name}.')
+        print(f'Running launch_cvd. You MUST keep an eye on {logfile.name}')
 
         env = os.environ.copy()
         env['HOME'] = self.cf
@@ -78,6 +78,7 @@ class CVDInstance:
         ]
         if use_qemu:
             args.append('--vm_manager=qemu_cli')
+            args.append(f'--qemu_binary_dir={PROJ_DIR}')
         if enable_gdb:
             args.extend([
                 f'-gdb_port={self.gdb_port}',

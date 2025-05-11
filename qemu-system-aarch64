@@ -1,0 +1,12 @@
+#!/usr/bin/python3
+
+import os
+import sys
+
+
+for i, arg in enumerate(sys.argv):
+    if arg == 'AC97':
+        del sys.argv[i]
+        del sys.argv[i - 1]
+
+os.execvp('/usr/bin/qemu-system-aarch64', sys.argv)
