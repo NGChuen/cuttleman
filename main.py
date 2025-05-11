@@ -35,9 +35,10 @@ class CVDInstance:
         self.base_num: int = base_num
         self.cf: str = os.path.join(CFS, str(base_num))
         self.adb_port: int = 6520 + base_num - 1
+        self.adb_path: str = os.path.join(self.cf, 'bin/adb')
+        self.adb_shell_cmd: str = f'{self.adb_path} -s 0.0.0.0:{self.adb_port} shell'
         self.gdb_port: int = 1234 + base_num - 1
-
-        self._run_cvd_path = os.path.join(self.cf, 'bin/run_cvd')
+        self._run_cvd_path: str = os.path.join(self.cf, 'bin/run_cvd')
 
     def start(self, kernel: str, initramfs: str, ori_cf: str, use_qemu: bool = True, enable_gdb: bool = True) -> bool:
         # Stop the cvd instance you started earlier with the same base number, if any.
@@ -47,6 +48,8 @@ class CVDInstance:
 
         logfile = open(os.path.join(self.cf, 'launch_cvd_output'), 'w')
         print(f'launch_cvd output: {logfile.name}')
+        print('After the kernel boots, run the following commands:')
+        print('\t' + self.adb_shell_cmd)
 
         env = os.environ.copy()
         env['HOME'] = self.cf
@@ -70,6 +73,7 @@ class CVDInstance:
                 '-cpus=1',
                 '-extra_kernel_cmdline=nokaslr'
             ])
+            print(f'\ttarget remote :{self.gdb_port}')
         cmd = shlex.join(args)
         launch = pexpect.spawn(cmd, cwd=self.cf, env=env, encoding='utf-8', logfile=logfile)
         launch.sendline()
@@ -106,7 +110,7 @@ class CVDInstance:
     def get_adb_shell(self):
         print('Ctrl+D to exit the shell')
         adb = pexpect.spawn(
-            f'{os.path.join(self.cf, 'bin/adb')} -s 0.0.0.0:{self.adb_port} shell',
+            self.adb_shell_cmd,
             echo=True,
             cwd=self.cf,
             encoding='utf-8',
