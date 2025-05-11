@@ -1,3 +1,4 @@
+import grp
 import os
 import pexpect
 import psutil
@@ -10,6 +11,12 @@ DEV_KVM = '/dev/kvm'
 VHOST_VSOCK = '/dev/vhost-vsock'
 assert os.access(DEV_KVM, os.R_OK) and os.access(DEV_KVM, os.W_OK)
 assert os.access(VHOST_VSOCK, os.R_OK) and os.access(VHOST_VSOCK, os.W_OK)
+in_cvdnetwork_group = False
+for gid in os.getgroups():
+    if grp.getgrgid(gid).gr_name == 'cvdnetwork':
+        in_cvdnetwork_group = True
+        break
+assert in_cvdnetwork_group
 
 
 PROJ_DIR = os.path.dirname(os.path.abspath(__file__))
