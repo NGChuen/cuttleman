@@ -48,8 +48,6 @@ class CVDInstance:
 
         logfile = open(os.path.join(self.cf, 'launch_cvd_output'), 'w')
         print(f'launch_cvd output: {logfile.name}')
-        print('After the kernel boots, run the following commands:')
-        print('\t' + self.adb_shell_cmd)
 
         env = os.environ.copy()
         env['HOME'] = self.cf
@@ -73,7 +71,10 @@ class CVDInstance:
                 '-cpus=1',
                 '-extra_kernel_cmdline=nokaslr'
             ])
+            print('Connect to GDB, or the kernel won\'t start booting:')
             print(f'\ttarget remote :{self.gdb_port}')
+        print('After the kernel boots, run:')
+        print('\t' + self.adb_shell_cmd)
         cmd = shlex.join(args)
         launch = pexpect.spawn(cmd, cwd=self.cf, env=env, encoding='utf-8', logfile=logfile)
         launch.sendline()
