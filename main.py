@@ -68,22 +68,15 @@ class CVDInstance:
         cmd = shlex.join(args)
         launch = pexpect.spawn(cmd, cwd=self.cf, env=env, encoding='utf-8', logfile=logfile)
         launch.sendline()
-        index = launch.expect([pexpect.EOF, pexpect.TIMEOUT], timeout=240)
-        if index == 0:
-            if 'VIRTUAL_DEVICE_BOOT_COMPLETED' in launch.before:
-                print('[+] Boot succeeded')
-                return True
-            elif 'VIRTUAL_DEVICE_BOOT_FAILED' in launch.before:
-                print('[-] Boot failed (1)')
-                return False
-            else:
-                print('[-] Boot failed (2)')
-                return False
+        launch.expect(pexpect.EOF, timeout=None)
+        if 'VIRTUAL_DEVICE_BOOT_COMPLETED' in launch.before:
+            print('[+] Boot succeeded')
+            return True
+        elif 'VIRTUAL_DEVICE_BOOT_FAILED' in launch.before:
+            print('[-] Boot failed (1)')
         else:
-            print('[-] Boot failed (timed out)')
-            launch.close(True)
-            self.force_stop()
-            return False
+            print('[-] Boot failed (2)')
+        return False
 
     def stop(self):
         env = os.environ.copy()
