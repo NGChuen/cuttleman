@@ -7,10 +7,8 @@ import shutil
 import subprocess
 
 
-DEV_KVM = '/dev/kvm'
-VHOST_VSOCK = '/dev/vhost-vsock'
-assert os.access(DEV_KVM, os.R_OK) and os.access(DEV_KVM, os.W_OK)
-assert os.access(VHOST_VSOCK, os.R_OK) and os.access(VHOST_VSOCK, os.W_OK)
+assert os.access('/dev/kvm', os.R_OK | os.W_OK)
+assert os.access('/dev/vhost-vsock', os.R_OK | os.W_OK)
 in_cvdnetwork_group = False
 for gid in os.getgroups():
     if grp.getgrgid(gid).gr_name == 'cvdnetwork':
