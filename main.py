@@ -41,13 +41,22 @@ class CVDInstance:
         self._run_cvd_path: str = os.path.join(self.cf, 'bin/run_cvd')
 
     def start(self, kernel: str, initramfs: str, ori_cf: str, use_qemu: bool = True, enable_gdb: bool = True) -> bool:
+        """Start a cvd instance using launch_cvd script.
+
+        Note:
+            This method blocks on launch.expect(pexpect.EOF). Could hang
+            indefinitely without reporting whether boot was successful.
+
+        Returns:
+            True if the instance booted successfully, False otherwise.
+        """
         # Stop the cvd instance you started earlier with the same base number, if any.
         self.force_stop()
 
         create_symlinked_copy(ori_cf, self.cf)
 
         logfile = open(os.path.join(self.cf, 'launch_cvd_output'), 'w')
-        print(f'launch_cvd output: {logfile.name}')
+        print(f'Running launch_cvd. You MUST keep an eye on {logfile.name}.')
 
         env = os.environ.copy()
         env['HOME'] = self.cf
@@ -90,11 +99,13 @@ class CVDInstance:
         return False
 
     def stop(self):
+        """Stop the cvd instance using stop_cvd script."""
         env = os.environ.copy()
         env['HOME'] = self.cf
         subprocess.run([os.path.join(self.cf, 'bin/stop_cvd')], cwd=self.cf, env=env)
 
     def force_stop(self):
+        """Forcefully stop the cvd instance with the same base number, if it is running."""
         killed = False
         for proc in psutil.process_iter(['pid', 'exe', 'cmdline']):
             try:
@@ -109,6 +120,7 @@ class CVDInstance:
             print('[+] Killed')
 
     def get_adb_shell(self):
+        """Open an interactive ADB shell session to the cvd instance."""
         print('Ctrl+D to exit the shell')
         adb = pexpect.spawn(
             self.adb_shell_cmd,
