@@ -18,7 +18,7 @@ assert in_cvdnetwork_group
 
 
 PROJ_DIR = os.path.dirname(os.path.abspath(__file__))
-CFS = os.path.join(PROJ_DIR, 'cfs')  # Temporary directory for storing data from different runs
+CFS = os.path.join(PROJ_DIR, 'cfs')  # Temporary directory for storing data from different cvd instances
 
 
 def create_symlinked_copy(src, dst):
@@ -49,8 +49,8 @@ class CVDInstance:
         """Start a cvd instance using launch_cvd script.
 
         Note:
-            This method blocks on launch.expect(pexpect.EOF). Could hang
-            indefinitely without reporting whether boot was successful.
+            This method blocks on launch.expect. Could hang indefinitely
+            without reporting whether boot was successful.
 
         Returns:
             True if the instance booted successfully, False otherwise.

@@ -13,13 +13,15 @@ pip install pexpect psutil
 
 Open main.py and update the following variables in the `__main__` section:
 
-`base_num`: a unique integer between 10 and 99
+- `base_num`: an integer between 10 and 99
 
-`kernel`: path to your kernel image (e.g., Image)
+  - Make sure it's not being used by another cvd instance running at the same time (by you or another person)
 
-`initramfs`: path to your initramfs file
+- `kernel`: path to your kernel image (e.g., Image)
 
-`ori_cf`: directory where you extracted the contents of the two compressed files.
+- `initramfs`: path to your initramfs file
+
+- `ori_cf`: directory where you extracted the contents of the two compressed files
 
 ## Run the launcher
 
