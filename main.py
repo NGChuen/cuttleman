@@ -30,15 +30,16 @@ def create_symlinked_copy(src, dst):
 class CVDInstance:
     def __init__(self, base_num: int):
         if base_num < 10 or base_num > 99:
-            print('[-] Base number must be between 10 and 99 for QEMU compatibility')
+            raise ValueError('Base number must be between 10 and 99 for QEMU compatibility')
 
         self.base_num: int = base_num
         self.cf: str = os.path.join(CFS, str(base_num))
         self.adb_port: int = 6520 + base_num - 1
+        self.gdb_port: int = 1234 + base_num - 1
 
         self._run_cvd_path = os.path.join(self.cf, 'bin/run_cvd')
 
-    def start(self, kernel: str, initramfs: str, ori_cf: str) -> bool:
+    def start(self, kernel: str, initramfs: str, ori_cf: str, use_qemu: bool = True, enable_gdb: bool = True) -> bool:
         # Stop the cvd instance you started earlier with the same base number, if any.
         self.force_stop()
 
@@ -59,12 +60,16 @@ class CVDInstance:
             '-tcp_port_range=15550:15599',
             '-udp_port_range=0:0',
             f'--base_instance_num={self.base_num}',
-            # '--vm_manager=qemu_cli'
-            # '-gdb_port=2345',
-            # '-console=true',
-            # '-cpus=1',
-            # '-extra_kernel_cmdline=nokaslr'
         ]
+        if use_qemu:
+            args.append('--vm_manager=qemu_cli')
+        if enable_gdb:
+            args.extend([
+                f'-gdb_port={self.gdb_port}',
+                '-console=true',
+                '-cpus=1',
+                '-extra_kernel_cmdline=nokaslr'
+            ])
         cmd = shlex.join(args)
         launch = pexpect.spawn(cmd, cwd=self.cf, env=env, encoding='utf-8', logfile=logfile)
         launch.sendline()
@@ -76,6 +81,7 @@ class CVDInstance:
             print('[-] Boot failed (1)')
         else:
             print('[-] Boot failed (2)')
+        self.force_stop()
         return False
 
     def stop(self):
@@ -117,8 +123,6 @@ if __name__ == '__main__':
 
     cvd = CVDInstance(base_num)
     try:
-        if cvd.start(kernel, initramfs, ori_cf):
-            cvd.get_adb_shell()
-            cvd.force_stop()
+        cvd.start(kernel, initramfs, ori_cf)
     except KeyboardInterrupt:
         cvd.force_stop()
