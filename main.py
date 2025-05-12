@@ -70,6 +70,7 @@ class CVDInstance:
             f'-kernel_path={kernel}',
             f'-initramfs_path={initramfs}',
             '--daemon',
+            '-console=true',
             '-enable-audio=true',
             '-start_webrtc=true',
             '-tcp_port_range=15550:15599',
@@ -82,7 +83,6 @@ class CVDInstance:
         if enable_gdb:
             args.extend([
                 f'-gdb_port={self.gdb_port}',
-                '-console=true',
                 '-cpus=1',
                 '-extra_kernel_cmdline=nokaslr'
             ])
@@ -111,7 +111,7 @@ class CVDInstance:
         subprocess.run([os.path.join(self.cf, 'bin/stop_cvd')], cwd=self.cf, env=env)
 
     def force_stop(self):
-        """Forcefully stop the cvd instance with the same base number, if it is running."""
+        """Forcefully stop the cvd instance, if it is running."""
         killed = False
         for proc in psutil.process_iter(['pid', 'exe', 'cmdline']):
             try:
