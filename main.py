@@ -83,7 +83,6 @@ class CVDInstance:
         if enable_gdb:
             args.extend([
                 f'-gdb_port={self.gdb_port}',
-                '-cpus=1',
                 '-extra_kernel_cmdline=nokaslr'
             ])
             print('Connect to GDB, or the kernel won\'t start booting:')

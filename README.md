@@ -31,4 +31,4 @@ Execute `main.py` with `sudo` to ensure access to `/dev/net/tun` (CAP_NET_ADMIN 
 sudo venv/bin/python main.py
 ```
 
-Press Ctrl+C to exit.
+Press Ctrl+C to stop it.
