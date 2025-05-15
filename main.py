@@ -18,12 +18,10 @@ assert in_cvdnetwork_group
 
 
 PROJ_DIR = os.path.dirname(os.path.abspath(__file__))
-CFS = os.path.join(PROJ_DIR, 'cfs')  # Temporary directory for storing data from different cvd instances
+CFS = os.path.join(PROJ_DIR, 'cfs')  # Temporary directory for storing GSI folders from different cvd instances
 
 
 def create_symlinked_copy(src, dst):
-    if os.path.exists(dst):
-        shutil.rmtree(dst)
     os.makedirs(dst)
 
     for name in os.listdir(src):
@@ -45,7 +43,7 @@ class CVDInstance:
         self.gdb_port: int = 1234 + base_num - 1
         self._run_cvd_path: str = os.path.join(self.cf, 'bin/run_cvd')
 
-    def start(self, kernel: str, initramfs: str, ori_cf: str, use_qemu: bool = True, enable_gdb: bool = True) -> bool:
+    def start(self, kernel: str, initramfs: str, ori_cf: str, use_qemu: bool = False, enable_gdb: bool = False) -> bool:
         """Start a cvd instance using launch_cvd script.
 
         Note:
@@ -56,8 +54,18 @@ class CVDInstance:
             True if the instance booted successfully, False otherwise.
         """
         # Stop the cvd instance you started earlier with the same base number, if any.
-        self.force_stop()
+        if not self.force_stop():
+            return False
 
+        # Delete the GSI folder of the cvd instance.
+        if os.path.exists(self.cf):
+            try:
+                shutil.rmtree(self.cf)
+            except PermissionError:
+                print(f'[-] Please use sudo to delete {self.cf}')
+                return False
+
+        # Create a GSI folder for the current cvd instance.
         create_symlinked_copy(ori_cf, self.cf)
 
         logfile = open(os.path.join(self.cf, 'launch_cvd_output'), 'w')
@@ -109,20 +117,28 @@ class CVDInstance:
         env['HOME'] = self.cf
         subprocess.run([os.path.join(self.cf, 'bin/stop_cvd')], cwd=self.cf, env=env)
 
-    def force_stop(self):
+    def force_stop(self) -> bool:
         """Forcefully stop the cvd instance, if it is running."""
         killed = False
+        denied = False
         for proc in psutil.process_iter(['pid', 'exe', 'cmdline']):
             try:
                 cmdline = proc.info['cmdline']
                 if cmdline and cmdline[0] == self._run_cvd_path:
                     proc.kill()
                     killed = True
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+            except psutil.NoSuchProcess:
+                continue
+            except psutil.AccessDenied:
+                denied = True
                 continue
 
+        if denied:
+            print('[-] Please use sudo to stop the previous CVD instance.')
+            return False
         if killed:
             print('[+] Killed')
+        return True
 
     def get_adb_shell(self):
         """Open an interactive ADB shell session to the cvd instance."""
