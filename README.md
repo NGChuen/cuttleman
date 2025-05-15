@@ -17,11 +17,11 @@ Open main.py and update the following variables in the `__main__` section:
 
   - Make sure it's not being used by another cvd instance running at the same time (by you or another person)
 
-- `kernel`: path to your kernel image (e.g., Image)
+- `kernel`: path to your kernel image
 
 - `initramfs`: path to your initramfs file
 
-- `ori_cf`: directory where you extracted the contents of the two compressed files
+- `ori_cf`: path to your GSI folder where you extracted the contents of the two compressed files
 
 ## Run the launcher
 

@@ -40,10 +40,19 @@ class CVDInstance:
         self.adb_port: int = 6520 + base_num - 1
         self.adb_path: str = os.path.join(self.cf, 'bin/adb')
         self.adb_shell_cmd: str = f'{self.adb_path} -s 0.0.0.0:{self.adb_port} shell'
+        self.console: str = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/console')
         self.gdb_port: int = 1234 + base_num - 1
         self._run_cvd_path: str = os.path.join(self.cf, 'bin/run_cvd')
 
-    def start(self, kernel: str, initramfs: str, ori_cf: str, use_qemu: bool = False, enable_gdb: bool = False) -> bool:
+    def start(
+        self,
+        kernel: str,
+        initramfs: str,
+        ori_cf: str,
+        use_qemu: bool = False,
+        enable_kgdb: bool = False,
+        enable_vm_gdb: bool = False
+    ) -> bool:
         """Start a cvd instance using launch_cvd script.
 
         Note:
@@ -85,16 +94,27 @@ class CVDInstance:
             '-udp_port_range=0:0',
             f'--base_instance_num={self.base_num}',
         ]
+        cpus = 2
+        extra_kernel_cmdline_split = []
         if use_qemu:
-            args.append('--vm_manager=qemu_cli')
-            args.append(f'--qemu_binary_dir={PROJ_DIR}')
-        if enable_gdb:
             args.extend([
-                f'-gdb_port={self.gdb_port}',
-                '-extra_kernel_cmdline=nokaslr'
+                '--vm_manager=qemu_cli',
+                f'--qemu_binary_dir={PROJ_DIR}',
             ])
+        if enable_kgdb:
+            args.append('--kgdb')
+        if enable_vm_gdb:
+            if not use_qemu:
+                cpus = 1
+            args.append(f'-gdb_port={self.gdb_port}')
             print('Connect to GDB, or the kernel won\'t start booting:')
             print(f'\ttarget remote :{self.gdb_port}')
+        if enable_kgdb or enable_vm_gdb:
+            extra_kernel_cmdline_split.append('nokaslr')
+        args.extend([
+            f'-cpus={cpus}',
+            f'-extra_kernel_cmdline="{' '.join(extra_kernel_cmdline_split)}"'
+        ])
         print('After the kernel boots, run:')
         print('\t' + self.adb_shell_cmd)
         cmd = shlex.join(args)
@@ -161,6 +181,6 @@ if __name__ == '__main__':
 
     cvd = CVDInstance(base_num)
     try:
-        cvd.start(kernel, initramfs, ori_cf)
+        cvd.start(kernel, initramfs, ori_cf, False, False, False)
     except KeyboardInterrupt:
         cvd.force_stop()
