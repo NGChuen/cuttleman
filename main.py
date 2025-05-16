@@ -50,6 +50,7 @@ class CVDInstance:
         initramfs: str,
         ori_cf: str,
         use_qemu: bool = False,
+        crosvm_binary: str = None,
         enable_kgdb: bool = False,
         enable_vm_gdb: bool = False
     ) -> bool:
@@ -101,6 +102,9 @@ class CVDInstance:
                 '--vm_manager=qemu_cli',
                 f'--qemu_binary_dir={PROJ_DIR}',
             ])
+        else:
+            if crosvm_binary:
+                args.append(f'--crosvm_binary={crosvm_binary}')
         if enable_kgdb:
             args.append('--kgdb')
         if enable_vm_gdb:
@@ -181,6 +185,14 @@ if __name__ == '__main__':
 
     cvd = CVDInstance(base_num)
     try:
-        cvd.start(kernel, initramfs, ori_cf, False, False, False)
+        cvd.start(
+            kernel,
+            initramfs,
+            ori_cf,
+            use_qemu=False,
+            crosvm_binary=None,
+            enable_kgdb=False,
+            enable_vm_gdb=False,
+        )
     except KeyboardInterrupt:
         cvd.force_stop()
