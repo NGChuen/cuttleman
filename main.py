@@ -37,9 +37,12 @@ class CVDInstance:
 
         self.base_num: int = base_num
         self.cf: str = os.path.join(CFS, str(base_num))
+        self.launch_cvd_output_path = os.path.join(self.cf, 'launch_cvd_output')
+        self.launcher_log_path = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/logs/launcher.log')
+        self.kernel_log_path = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/logs/kernel.log')
         self.adb_port: int = 6520 + base_num - 1
         self.adb_path: str = os.path.join(self.cf, 'bin/adb')
-        self.adb_shell_cmd: str = f'{self.adb_path} -s 0.0.0.0:{self.adb_port} shell'
+        self.adb_cmd_base: str = f'{self.adb_path} -s 0.0.0.0:{self.adb_port}'
         self.console: str = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/console')
         self.gdb_port: int = 1234 + base_num - 1
         self._run_cvd_path: str = os.path.join(self.cf, 'bin/run_cvd')
@@ -78,8 +81,11 @@ class CVDInstance:
         # Create a GSI folder for the current cvd instance.
         create_symlinked_copy(ori_cf, self.cf)
 
-        logfile = open(os.path.join(self.cf, 'launch_cvd_output'), 'w')
-        print(f'Running launch_cvd. You MUST keep an eye on {logfile.name}')
+        logfile = open(self.launch_cvd_output_path, 'w')
+        print(f'Running launch_cvd. MUST keep an eye on:')
+        print(f'\tits output:\t{self.launch_cvd_output_path}')
+        print(f'\tlauncher log:\t{self.launcher_log_path}')
+        print(f'\tkernel log:\t{self.kernel_log_path}')
 
         env = os.environ.copy()
         env['HOME'] = self.cf
@@ -120,7 +126,7 @@ class CVDInstance:
             f'-extra_kernel_cmdline="{' '.join(extra_kernel_cmdline_split)}"'
         ])
         print('After the kernel boots, run:')
-        print('\t' + self.adb_shell_cmd)
+        print('\t' + self.adb_cmd_base + ' shell')
         cmd = shlex.join(args)
         launch = pexpect.spawn(cmd, cwd=self.cf, env=env, encoding='utf-8', logfile=logfile)
         launch.sendline()
@@ -168,7 +174,7 @@ class CVDInstance:
         """Open an interactive ADB shell session to the cvd instance."""
         print('Ctrl+D to exit the shell')
         adb = pexpect.spawn(
-            self.adb_shell_cmd,
+            self.adb_cmd_base + ' shell',
             echo=True,
             cwd=self.cf,
             encoding='utf-8',
