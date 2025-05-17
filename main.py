@@ -42,7 +42,7 @@ class CVDInstance:
         self.kernel_log_path = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/logs/kernel.log')
         self.adb_port: int = 6520 + base_num - 1
         self.adb_path: str = os.path.join(self.cf, 'bin/adb')
-        self.adb_cmd_base: str = f'{self.adb_path} -s 0.0.0.0:{self.adb_port}'
+        self.adb_cmd_base_args: str = [self.adb_path, '-s', f'0.0.0.0:{self.adb_port}']
         self.console: str = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/console')
         self.gdb_port: int = 1234 + base_num - 1
         self._run_cvd_path: str = os.path.join(self.cf, 'bin/run_cvd')
@@ -126,7 +126,7 @@ class CVDInstance:
             f'-extra_kernel_cmdline="{' '.join(extra_kernel_cmdline_split)}"'
         ])
         print('After the kernel boots, run:')
-        print('\t' + self.adb_cmd_base + ' shell')
+        print('\t' + shlex.join(self.adb_cmd_base_args + ['shell']))
         cmd = shlex.join(args)
         launch = pexpect.spawn(cmd, cwd=self.cf, env=env, encoding='utf-8', logfile=logfile)
         launch.sendline()
@@ -174,7 +174,7 @@ class CVDInstance:
         """Open an interactive ADB shell session to the cvd instance."""
         print('Ctrl+D to exit the shell')
         adb = pexpect.spawn(
-            self.adb_cmd_base + ' shell',
+            shlex.join(self.adb_cmd_base_args + ['shell']),
             echo=True,
             cwd=self.cf,
             encoding='utf-8',
@@ -182,6 +182,29 @@ class CVDInstance:
         )
         adb.interact()
 
+    def run_command_in_adb_shell(self, cmd: str) -> tuple[bool, bytes]:
+        p = subprocess.run(
+            self.adb_cmd_base_args + ['shell', cmd],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+        return b'adb: error:' not in p.stdout, p.stdout
+
+    def adb_push(self, srcs: list[str], dst: str) -> bool:
+        p = subprocess.run(
+            self.adb_cmd_base_args + ['push'] + srcs + [dst],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+        return b'adb: error:' not in p.stdout
+
+    def adb_pull(self, src: str, dst: str) -> bool:
+        p = subprocess.run(
+            self.adb_cmd_base_args + ['pull', src, dst],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+        return b'adb: error:' not in p.stdout
 
 if __name__ == '__main__':
     base_num = 30  # TODO: change me
