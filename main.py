@@ -244,7 +244,7 @@ if __name__ == '__main__':
             qemu_binary_dir=None,  # Use PROJ_DIR when booting an arm64 kernel on QEMU
             cpus=2,
             memory_mb=4096,
-            extra_kernel_cmdline_split=None,
+            extra_kernel_cmdline_split=['stack_depot_disable=off'],
             enable_kgdb=False,
             enable_vm_gdb=False,
         )
