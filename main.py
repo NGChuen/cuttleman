@@ -52,25 +52,46 @@ class CVDInstance:
         kernel: str,
         initramfs: str,
         ori_cf: str,
-        use_qemu: bool = False,
+        use_crosvm: bool = True,
         crosvm_binary: str = None,
+        qemu_binary_dir: str = None,
+        cpus: int = 2,
+        memory_mb: int = 2048,
+        extra_kernel_cmdline_split: list[str] = None,
         enable_kgdb: bool = False,
-        enable_vm_gdb: bool = False
+        enable_vm_gdb: bool = False,
     ) -> bool:
         """Start a cvd instance using launch_cvd script.
+
+        Args:
+            kernel (str): Path to the kernel image.
+            initramfs (str): Path to the initramfs image.
+            ori_cf (str): Path to the GSI folder.
+            use_crosvm (bool, optional): Whether to use crosvm (True) or QEMU (False).
+            crosvm_binary (str, optional): Path to the crosvm binary.
+                Optional if use_crosvm is True.
+                Ignored if use_crosvm is False.
+            qemu_binary_dir (str, optional): Directory containing QEMU binaries.
+                Optional if use_crosvm is False.
+                Ignored if use_crosvm is True.
+            cpus (int, optional): Number of CPUs.
+            memory_mb (int, optional): Amount of memory (in megabytes).
+            extra_kernel_cmdline_split (list[str], optional): List of additional kernel command-line parameters.
+            enable_kgdb (bool, optional): Whether to enable KGDB.
+            enable_vm_gdb (bool, optional): Whether to enable VM-level GDB.
+
+        Returns:
+            True if the instance booted successfully, False otherwise.
 
         Note:
             This method blocks on launch.expect. Could hang indefinitely
             without reporting whether boot was successful.
-
-        Returns:
-            True if the instance booted successfully, False otherwise.
         """
-        # Stop the cvd instance you started earlier with the same base number, if any.
+        # Stop the previous cvd instance you started with the same base number, if any.
         if not self.force_stop():
             return False
 
-        # Delete the GSI folder of the cvd instance.
+        # Delete the GSI folder of the previous cvd instance.
         if os.path.exists(self.cf):
             try:
                 shutil.rmtree(self.cf)
@@ -101,28 +122,28 @@ class CVDInstance:
             '-udp_port_range=0:0',
             f'--base_instance_num={self.base_num}',
         ]
-        cpus = 2
-        extra_kernel_cmdline_split = []
-        if use_qemu:
-            args.extend([
-                '--vm_manager=qemu_cli',
-                f'--qemu_binary_dir={PROJ_DIR}',
-            ])
-        else:
+        if use_crosvm:
             if crosvm_binary:
                 args.append(f'--crosvm_binary={crosvm_binary}')
+        else:
+            args.append('--vm_manager=qemu_cli')
+            if qemu_binary_dir:
+                args.append(f'--qemu_binary_dir={qemu_binary_dir}')
         if enable_kgdb:
             args.append('--kgdb')
         if enable_vm_gdb:
-            if not use_qemu:
+            if use_crosvm:
                 cpus = 1
             args.append(f'-gdb_port={self.gdb_port}')
             print('Connect to GDB, or the kernel won\'t start booting:')
             print(f'\ttarget remote :{self.gdb_port}')
+        if extra_kernel_cmdline_split is None:
+            extra_kernel_cmdline_split = []
         if enable_kgdb or enable_vm_gdb:
             extra_kernel_cmdline_split.append('nokaslr')
         args.extend([
             f'-cpus={cpus}',
+            f'-memory_mb={memory_mb}',
             f'-extra_kernel_cmdline="{' '.join(extra_kernel_cmdline_split)}"'
         ])
         print('After the kernel boots, run:')
@@ -218,8 +239,12 @@ if __name__ == '__main__':
             kernel,
             initramfs,
             ori_cf,
-            use_qemu=False,
+            use_crosvm=True,
             crosvm_binary=None,
+            qemu_binary_dir=None,  # Use PROJ_DIR when booting an arm64 kernel on QEMU
+            cpus=2,
+            memory_mb=4096,
+            extra_kernel_cmdline_split=None,
             enable_kgdb=False,
             enable_vm_gdb=False,
         )
