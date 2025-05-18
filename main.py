@@ -139,6 +139,8 @@ class CVDInstance:
             print(f'\ttarget remote :{self.gdb_port}')
         if extra_kernel_cmdline_split is None:
             extra_kernel_cmdline_split = []
+        else:
+            extra_kernel_cmdline_split = extra_kernel_cmdline_split[:]
         if enable_kgdb or enable_vm_gdb:
             extra_kernel_cmdline_split.append('nokaslr')
         args.extend([
