@@ -193,6 +193,15 @@ class CVDInstance:
             print('[+] Killed')
         return True
 
+    def run_adb_subcommand(self, subcmd_args: list[str], timeout: float = None) -> bytes:
+        p = subprocess.run(
+            self.adb_cmd_base_args + subcmd_args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=timeout,
+        )
+        return p.stdout
+
     def get_adb_shell(self):
         """Open an interactive ADB shell session to the cvd instance."""
         print('Ctrl+D to exit the shell')
@@ -205,29 +214,18 @@ class CVDInstance:
         )
         adb.interact()
 
-    def run_command_in_adb_shell(self, cmd: str) -> tuple[bool, bytes]:
-        p = subprocess.run(
-            self.adb_cmd_base_args + ['shell', cmd],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        )
-        return b'adb: error:' not in p.stdout, p.stdout
+    def run_command_in_adb_shell(self, cmd: str, timeout: float = None) -> tuple[bool, bytes]:
+        stdout = self.run_adb_subcommand(['shell', cmd], timeout)
+        return b'adb: error:' not in stdout, stdout
 
     def adb_push(self, srcs: list[str], dst: str) -> bool:
-        p = subprocess.run(
-            self.adb_cmd_base_args + ['push'] + srcs + [dst],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        )
-        return b'adb: error:' not in p.stdout
+        stdout = self.run_adb_subcommand(['push'] + srcs + [dst])
+        return b'adb: error:' not in stdout
 
     def adb_pull(self, src: str, dst: str) -> bool:
-        p = subprocess.run(
-            self.adb_cmd_base_args + ['pull', src, dst],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        )
-        return b'adb: error:' not in p.stdout
+        stdout = self.run_adb_subcommand(['pull', src, dst])
+        return b'adb: error:' not in stdout
+
 
 if __name__ == '__main__':
     base_num = 30  # TODO: change me
