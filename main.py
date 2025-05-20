@@ -30,6 +30,29 @@ def create_symlinked_copy(src, dst):
         os.symlink(src_path, dst_link)
 
 
+def force_stop_cvd_instances_launched_from_proj_dir(filter_fn = lambda cmdline: cmdline[0].startswith(CFS)):
+    killed = False
+    denied = False
+    for proc in psutil.process_iter(['pid', 'exe', 'cmdline']):
+        try:
+            cmdline = proc.info['cmdline']
+            if cmdline and filter_fn(cmdline):
+                proc.kill()
+                killed = True
+        except psutil.NoSuchProcess:
+            continue
+        except psutil.AccessDenied:
+            denied = True
+            continue
+
+    if denied:
+        print('[-] Please use sudo to stop the previous CVD instance(s).')
+        return False
+    if killed:
+        print('[+] Killed')
+    return True
+
+
 class CVDInstance:
     def __init__(self, base_num: int):
         if base_num < 10 or base_num > 99:
@@ -172,26 +195,7 @@ class CVDInstance:
 
     def force_stop(self) -> bool:
         """Forcefully stop the cvd instance, if it is running."""
-        killed = False
-        denied = False
-        for proc in psutil.process_iter(['pid', 'exe', 'cmdline']):
-            try:
-                cmdline = proc.info['cmdline']
-                if cmdline and cmdline[0] == self._run_cvd_path:
-                    proc.kill()
-                    killed = True
-            except psutil.NoSuchProcess:
-                continue
-            except psutil.AccessDenied:
-                denied = True
-                continue
-
-        if denied:
-            print('[-] Please use sudo to stop the previous CVD instance.')
-            return False
-        if killed:
-            print('[+] Killed')
-        return True
+        return force_stop_cvd_instances_launched_from_proj_dir(lambda cmdline: cmdline[0] == self._run_cvd_path)
 
     def run_adb_subcommand(self, subcmd_args: list[str], timeout: float = None) -> bytes:
         p = subprocess.run(
