@@ -68,7 +68,6 @@ class CVDInstance:
         self.adb_cmd_base_args: str = [self.adb_path, '-s', f'0.0.0.0:{self.adb_port}']
         self.console: str = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/console')
         self.gdb_port: int = 1234 + base_num - 1
-        self._run_cvd_path: str = os.path.join(self.cf, 'bin/run_cvd')
 
     def start(
         self,
@@ -195,7 +194,7 @@ class CVDInstance:
 
     def force_stop(self) -> bool:
         """Forcefully stop the cvd instance, if it is running."""
-        return force_stop_cvd_instances_launched_from_proj_dir(lambda cmdline: cmdline[0] == self._run_cvd_path)
+        return force_stop_cvd_instances_launched_from_proj_dir(lambda cmdline: cmdline[0].startswith(self.cf))
 
     def run_adb_subcommand(self, subcmd_args: list[str], timeout: float = None) -> bytes:
         p = subprocess.run(
