@@ -168,7 +168,7 @@ class CVDInstance:
         args.extend([
             f'-cpus={cpus}',
             f'-memory_mb={memory_mb}',
-            f'-extra_kernel_cmdline="{' '.join(extra_kernel_cmdline_split)}"'
+            '-extra_kernel_cmdline="' + ' '.join(extra_kernel_cmdline_split) + '"'
         ])
         print('After the kernel boots, run:')
         print('\t' + shlex.join(self.adb_cmd_base_args + ['shell']))
