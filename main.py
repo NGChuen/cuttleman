@@ -55,9 +55,6 @@ def force_stop_cvd_instances_launched_from_proj_dir(filter_fn = lambda cmdline: 
 
 class CVDInstance:
     def __init__(self, base_num: int):
-        if base_num < 10 or base_num > 99:
-            raise ValueError('Base number must be between 10 and 99 for QEMU compatibility')
-
         self.base_num: int = base_num
         self.cf: str = os.path.join(CFS, str(base_num))
         self.launch_cvd_output_path = os.path.join(self.cf, 'launch_cvd_output')
@@ -109,6 +106,10 @@ class CVDInstance:
             This method blocks on launch.expect. Could hang indefinitely
             without reporting whether boot was successful.
         """
+        if not use_crosvm and (self.base_num < 10 or self.base_num > 99):
+            print('[-] Base number must be between 10 and 99 for QEMU compatibility')
+            return False
+
         # Stop the previous cvd instance you started with the same base number, if any.
         if not self.force_stop():
             return False
