@@ -58,12 +58,12 @@ class CVDInstance:
         self.base_num: int = base_num
         self.cf: str = os.path.join(CFS, str(base_num))
         self.launch_cvd_output_path = os.path.join(self.cf, 'launch_cvd_output')
-        self.launcher_log_path = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/logs/launcher.log')
-        self.kernel_log_path = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/logs/kernel.log')
+        self.launcher_log_path = os.path.join(self.cf, f'cuttlefish_runtime/launcher.log')
+        self.kernel_log_path = os.path.join(self.cf, f'cuttlefish_runtime/kernel.log')
         self.adb_port: int = 6520 + base_num - 1
         self.adb_path: str = os.path.join(self.cf, 'bin/adb')
         self.adb_cmd_base_args: str = [self.adb_path, '-s', f'0.0.0.0:{self.adb_port}']
-        self.console: str = os.path.join(self.cf, f'cuttlefish/instances/cvd-{base_num}/console')
+        self.console: str = os.path.join(self.cf, f'cuttlefish_runtime/console')
         self.gdb_port: int = 1234 + base_num - 1
 
     def start(
