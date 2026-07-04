@@ -218,17 +218,18 @@ class CVDInstance:
         )
         adb.interact()
 
-    def run_command_in_adb_shell(self, cmd: str, timeout: float = None) -> tuple[bool, bytes]:
-        stdout = self.run_adb_subcommand(['shell', cmd], timeout)
-        return b'adb: error:' not in stdout, stdout
+    def run_command_in_adb_shell(self, cmd: str, timeout: float = None) -> bytes:
+        return self.run_adb_subcommand(['shell', cmd], timeout)
 
-    def adb_push(self, srcs: list[str], dst: str) -> bool:
-        stdout = self.run_adb_subcommand(['push'] + srcs + [dst])
-        return b'adb: error:' not in stdout
+    def adb_push(self, srcs: list[str], dst: str) -> bytes:
+        return self.run_adb_subcommand(['push'] + srcs + [dst])
 
-    def adb_pull(self, src: str, dst: str) -> bool:
-        stdout = self.run_adb_subcommand(['pull', src, dst])
-        return b'adb: error:' not in stdout
+    def adb_pull(self, src: str, dst: str) -> bytes:
+        return self.run_adb_subcommand(['pull', src, dst])
+
+
+def adb_success(output: bytes) -> bool:
+    return b'adb: device' not in output and b'adb: error:' not in output
 
 
 if __name__ == '__main__':
