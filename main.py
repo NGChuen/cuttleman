@@ -138,6 +138,7 @@ class CVDInstance:
             f'-kernel_path={kernel}',
             f'-initramfs_path={initramfs}',
             '--daemon',
+            '--gpu_mode=guest_swiftshader',
             '-console=true',
             '-enable-audio=true',
             '-start_webrtc=true',
