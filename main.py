@@ -62,7 +62,7 @@ class CVDInstance:
         self.kernel_log_path = os.path.join(self.cf, f'cuttlefish_runtime/kernel.log')
         self.adb_port: int = 6520 + base_num - 1
         self.adb_path: str = os.path.join(self.cf, 'bin/adb')
-        self.adb_cmd_base_args: str = [self.adb_path, '-s', f'0.0.0.0:{self.adb_port}']
+        self.adb_cmd_base_args: str = [self.adb_path, '-s', f'127.0.0.1:{self.adb_port}']
         self.console: str = os.path.join(self.cf, f'cuttlefish_runtime/console')
         self.gdb_port: int = 1234 + base_num - 1
 
